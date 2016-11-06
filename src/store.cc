@@ -1,5 +1,7 @@
 #include "threadpool.h"
 #include <string>
+#include <chrono>
+#include <thread>
 #include <vector>
 #include <iostream>
 #include <grpc++/grpc++.h>
@@ -28,7 +30,10 @@ public:
 		cq_ = builder.AddCompletionQueue();
 		server_ = builder.BuildAndStart();
 		std::cout << "Starting to run under " << server_address << "\n";
-		while(true) { }
+		while(true) {
+			pool->enqueue( []() { std::cout << "おはよう" << std::endl; });
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		}
 	}
 
 private:

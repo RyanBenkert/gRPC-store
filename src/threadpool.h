@@ -1,6 +1,7 @@
 #pragma once
 #include <thread>
 #include <queue>
+#include <condition_variable>
 
 class ThreadPool {
 public:
@@ -13,9 +14,13 @@ public:
 	// Method to submit work to the thread pool. The pool decides which
 	// worker will use it
 	int enqueue(std::function<void()>);
+	enum Status { AVAILABLE, WORKING, WAITING };
 private:
+	void run(int i);
 	std::vector<std::thread> workers;
 	std::queue<std::function<void()>> tasks;
+        std::condition_variable condition;
+	std::mutex queueMutex;
 	std::vector<std::string> getAddresses(std::string addressesLocation);
 };
 
