@@ -4,9 +4,9 @@
 
 class ThreadPool {
 public:
-        // Constructor that takes in the number of threads and a vector of
-	// addresses (for vendors)
-	ThreadPool(size_t, std::vector<std::string>);
+        // Constructor that takes in the number of threads and a file location
+	// to retrieve the vendor addresses
+	ThreadPool(std::string, int);
         // Destructor which simply joins the threads to clean up the memory
 	// footprint of the pool
 	~ThreadPool();
@@ -14,9 +14,8 @@ public:
 	// worker will use it
 	int enqueue(std::function<void()>);
 private:
-	// need to keep track of threads so we can join them
 	std::vector<std::thread> workers;
-	//     // the task queue
 	std::queue<std::function<void()>> tasks;
+	std::vector<std::string> getAddresses(std::string addressesLocation);
 };
 
