@@ -21,5 +21,4 @@ message ProductReply {
 message ProductInfo {
 	double price = 1;
 	string vendor_id = 2;
-	
 }

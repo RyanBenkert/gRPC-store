@@ -7,7 +7,7 @@ class ThreadPool {
 public:
         // Constructor that takes in the number of threads and a file location
 	// to retrieve the vendor addresses
-	ThreadPool(std::string, int);
+	ThreadPool(int);
         // Destructor which simply joins the threads to clean up the memory
 	// footprint of the pool
 	~ThreadPool();
