@@ -44,19 +44,6 @@ public:
 			//std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		//}
 	}
-
-	void HandleRpcs() {
-		new CallData(&service_, cq_.get());
-		void* tag;  // uniquely identifies a request.
-		bool ok;
-		while(true) {
-			std::cout << "おはよう" << "\n";
-			GPR_ASSERT(cq_->Next(&tag, &ok));
-			GPR_ASSERT(ok);
-			static_cast<CallData*>(tag)->Proceed();
-		}
-	}
-
 private:
         // Implementation partly borrowed from gRPC greeter async service
 	// helloworld example
@@ -69,12 +56,15 @@ private:
 		void Proceed() {
 			if (status_ == CREATE) {
 				std::cout << "CREATE: Roger that." << std::endl;
+				// Start processing the request getProducts,
+				// 'this' identifies CallData instances
 				service_->RequestgetProducts(&ctx_,
 							     &request_,
 							     &responder_,
 							     cq_,
 							     cq_,
-							     this); // 'this' identifies CallData instances
+							     this);
+				std::cout << " - Started processing Request GetProduct." << std::endl;
 				status_ = PROCESS;
 			} else if (status_ == PROCESS) {
 				// Spawn a new CallData instance to serve new clients while we process
@@ -88,9 +78,10 @@ private:
 
 				std::cout << "Creating fake reply in server" << std::endl;
 				//reply_ = get_product_reply(vendor_addresses, request_.product_name());
-				ProductInfo *product_info;
-				reply_.add_products();
+				ProductInfo *product_info = reply_.add_products();
+				std::cout << "Setting price" << std::endl;
 				product_info->set_price(300);
+				std::cout << "Setting vendor ID" << std::endl;
 				product_info->set_vendor_id("Paquito");
 				std::cout << "Received response for: " << request_.product_name() << std::endl;
 				status_ = FINISH;
@@ -121,6 +112,19 @@ private:
 		enum CallStatus { CREATE, PROCESS, FINISH };
 		CallStatus status_;  // The current serving state.
 	};
+
+	void HandleRpcs() {
+		new CallData(&service_, cq_.get());
+		void* tag;  // uniquely identifies a request.
+		bool ok;
+		while(true) {
+			std::cout << "始めましょう" << "\n";
+			GPR_ASSERT(cq_->Next(&tag, &ok));
+			std::cout << "終わります" << "\n";
+			GPR_ASSERT(ok);
+			static_cast<CallData*>(tag)->Proceed();
+		}
+	}
 
 	Store::AsyncService service_;
 	std::unique_ptr<ServerCompletionQueue> cq_;
