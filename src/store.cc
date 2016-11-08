@@ -49,10 +49,13 @@ private:
 	// helloworld example
 	class CallData {
 	public:
-		CallData(Store::AsyncService* service, ServerCompletionQueue* cq)
+		CallData(Store::AsyncService* service, ServerCompletionQueue* cq,
+			 ThreadPool *pool)
 			: service_(service), cq_(cq), responder_(&ctx_), status_(CREATE) {
+				this->pool_ = pool;
 				Proceed();
 			}
+
 		void Proceed() {
 			if (status_ == CREATE) {
 				std::cout << "CREATE: Roger that." << std::endl;
@@ -71,18 +74,25 @@ private:
 				// the one for this CallData. The instance will deallocate itself as
 				// part of its FINISH state.
 				std::cout << "Creating alternative CallData" << std::endl;
-				new CallData(service_, cq_);
+				new CallData(service_, cq_, pool_);
 
 				// Enqueue in pool to start sending requests to
-				// clients (fake for the moment)
+				// clients
+				std::string query = request_.product_name();
+				std::future<std::vector<VendorBid>> fut = pool_->appendQuery(query);
+				std::vector<VendorBid> vendor_bids = fut.get();
+				for(VendorBid bid : vendor_bids) {
+					std::cout << "Bid received: ("
+						<< query
+						<< ", " << bid.price
+						<< ", " << bid.vendor_id
+						<< ")" << std::endl;
 
-				std::cout << "Creating fake reply in server" << std::endl;
-				//reply_ = get_product_reply(vendor_addresses, request_.product_name());
-				ProductInfo *product_info = reply_.add_products();
-				std::cout << "Setting price" << std::endl;
-				product_info->set_price(300);
-				std::cout << "Setting vendor ID" << std::endl;
-				product_info->set_vendor_id("Paquito");
+					ProductInfo* product_info = reply_.add_products();
+					product_info->set_price(bid.price);
+					product_info->set_vendor_id(bid.vendor_id);
+				}
+
 				std::cout << "Received response for: " << request_.product_name() << std::endl;
 				status_ = FINISH;
 				responder_.Finish(reply_, Status::OK, this);
@@ -111,14 +121,15 @@ private:
 		// Let's implement a tiny state machine with the following states.
 		enum CallStatus { CREATE, PROCESS, FINISH };
 		CallStatus status_;  // The current serving state.
+	        ThreadPool *pool_;
 	};
 
 	void HandleRpcs() {
-		new CallData(&service_, cq_.get());
+		new CallData(&service_, cq_.get(), pool_);
 		void* tag;  // uniquely identifies a request.
 		bool ok;
 		while(true) {
-			std::cout << "始めましょう" << "\n";
+			std::cout << "始めまります" << "\n";
 			GPR_ASSERT(cq_->Next(&tag, &ok));
 			std::cout << "終わります" << "\n";
 			GPR_ASSERT(ok);
@@ -130,13 +141,6 @@ private:
 	std::unique_ptr<ServerCompletionQueue> cq_;
 	std::unique_ptr<Server> server_;
 	ThreadPool *pool_;
-};
-
-
-
-class Vendor{
-public:
-	explicit Vendor() {}
 };
 
 std::vector<std::string> getAddresses(std::string addressesLocation) {
@@ -176,7 +180,7 @@ int main(int argc, char** argv) {
 	}
         // Create pool before running server to ensure there are always threads
 	// available at the beginning of execution
-	ThreadPool *pool = new ThreadPool(nrOfThreads);
+	ThreadPool *pool = new ThreadPool(nrOfThreads, getAddresses(addressesList));
 	StoreImpl store;
 	store.RunServer(portNumber, pool);
 }
