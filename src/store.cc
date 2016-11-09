@@ -79,16 +79,11 @@ private:
 				// Enqueue in pool to start sending requests to
 				// clients
 				std::string query = request_.product_name();
-				std::future<std::vector<VendorBid>> fut = pool_->appendQuery(query);
-				std::vector<VendorBid> vendor_bids = fut.get();
-				for(VendorBid bid : vendor_bids) {
-					std::cout << "Bid received: ("
-						<< query
-						<< ", " << bid.price
-						<< ", " << bid.vendor_id
-						<< ")" << std::endl;
-
+				std::future<std::vector<VendorBid>> futureQuery = pool_->appendQuery(query);
+				std::vector<VendorBid> vendorBids = futureQuery.get();
+				for(VendorBid bid : vendorBids) {
 					ProductInfo* product_info = reply_.add_products();
+					std::cout << "Bid: (" << query << ", " << bid.vendor_id<< ", " << bid.price << ")" << std::endl;
 					product_info->set_price(bid.price);
 					product_info->set_vendor_id(bid.vendor_id);
 				}
@@ -129,9 +124,9 @@ private:
 		void* tag;  // uniquely identifies a request.
 		bool ok;
 		while(true) {
-			std::cout << "始めまります" << "\n";
+			std::cout << "Waiting for client request" << "\n";
 			GPR_ASSERT(cq_->Next(&tag, &ok));
-			std::cout << "終わります" << "\n";
+			std::cout << "Parsing client request" << "\n";
 			GPR_ASSERT(ok);
 			static_cast<CallData*>(tag)->Proceed();
 		}
