@@ -1,0 +1,37 @@
+gRPC fake store that connects to vendors
+-------------------------
+
+To run:
+
+```
+make
+./store vendor_addresses.txt $NROFTHREADS $PORTNUMBER
+
+# On a different terminal
+./test/run_vendors ../src/vendor_addresses.txt
+
+# On another different terminal
+./test/run_tests $FQDN:$PORTNUMBER
+```
+
+Ensure that you run tests like:
+
+./run_tests FQDN:PORTNUMBER
+
+I noticed ./run_tests will not connect to the store if you only provide the
+port number and not the IP address.
+
+The store.cc structure mimics grpc's asynchronous helloworld example.
+
+The threadpool implementation uses a queue 'workers' for the pool of threads,
+and another queue tasks for the lambda functions that need to be called in the threads.
+
+Once a request comes in (through appendQuery(string)) - the pool puts in the
+tasks queue async requests to all vendor addresses for that product through AsyncAskBid.
+This method is very similar to the one used in the grpc client helloworld example.
+
+As for choosing which task runs in which thread, the pool simply makes all threads
+wait on a queueMutex. This mutex and a condition variable that looks for a "tasks" queue
+"not empty" ensures that once there's a task, only one thread will assign it to itself.
+When threads finish their execution, they call notify_one on the condition variable to
+wake up any other thread.

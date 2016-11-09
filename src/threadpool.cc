@@ -89,7 +89,7 @@ std::vector<VendorBid> ThreadPool::askBid(const std::string& query)
 		vendor::BidReply bid_reply = vendor_client_ptr->AsyncCompleteRpc();
 		double bid_price = bid_reply.price();
 		std::string vendor_id = bid_reply.vendor_id();
-		vendor_bids.emplace_back(VendorBid{bid_price, vendor_id});
+		vendor_bids.emplace_back(VendorBid{vendor_id, bid_price});
 	}
 	return vendor_bids;
 }
